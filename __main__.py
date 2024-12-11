@@ -1,5 +1,5 @@
 from Game import Game
-from helper import pygame, SCREEN_HEIGHT, SCREEN_WIDTH
+from helper import *
 
 game = Game(SCREEN_WIDTH, SCREEN_HEIGHT)
-game.initialize_game()
+game.initializeGame()
