@@ -1,60 +1,91 @@
 import random
-from helper import tetriminoes, vec2
+from helper import *
 
 class Mino:
-	def __init__(self, parent):
+	def __init__(self, parent: 'Tetromino', position):
 		self.parent = parent
+		self.rect = pygame.Rect()
+		self.containerRect = self.parent.rect
 		self.colour = parent.getColour()
+		self.position = position
 
-		def drawMino(self):
+		def draw(self):
 			pass
 
+		# TODO: Create out of bounds check
+		# TODO: Collision with other players check?
 		def checkCollision(self):
 			pass
-			# Out of bounds check
 			
-			# TODO: eventual collision with other players check?
-			
-		def rotateTile(self, clockwise = True):
-			# TODO: either use rotation matrices or manually rotate the points using
+		# TODO: Probably remake the rotation formula with relative coordinates based on self.position
+		def rotate(self, clockwise = True):
+			# Because the coordinate system is left-handed, the matrices are a little different than normal
+			"""
+			CW matrix = [0 -1]
+									[1  0]
+			Matrix multiplication with x and y coord turns into:
+				(x, y) --> (-y, x)
+
+			CCW matrix = [0  1]
+									 [-1 0]
+			Matrix multiplication with x and y coord turns into:
+				(x, y) --> (y, -x)
+			"""
+			x, y = self.position
+			newPos = (-y, x) if clockwise else (y, -x)
+			return newPos
+		
+		def update():
 			pass
 
-
 class Tetromino:
-	# TODO: Find a way to represent a teris piece
-	# https://en.wikipedia.org/wiki/Tetromino#One-sided_tetrominoes for referenc
+	# https://en.wikipedia.org/wiki/Tetromino#One-sided_tetrominoes for reference
 
-	def __init__(self, parent, type = None, colour = None):
+	def __init__(self, parent, tetrominoType=None, colour=None, current=False):
 		self.parent = parent
-		self.type = type if type in self.tetrominoes.keys() else random.choice(self.tetrominoes.keys())
+		self.rect = pygame.Rect()
+		self.type = tetrominoType if tetrominoType in self.tetrominoes.keys() else random.choice(self.tetrominoes.keys())
+		self.current = current
+
 		self.rotation = 0
-		self.minoes = [Mino(coord) for coord in tetriminoes[self.type][self.rotation]]
-		self.colour = tetriminoes[self.type] if colour else tetriminoes[self.type].colour
+		# self.minoes[0] will be the pivot/origin
+		self.minoes = [Mino(coord) for coord in TETRIMINO_TYPES[self.type]["relPos"]]
+		self.colour = colour if colour in colours.keys() else TETRIMINO_TYPES[self.type]["color"]
 
-	def getPosition(self):
-		return self.position
+	def update(self):
+		for mino in self.minoes:
+			mino.updateMino()
 	
-	def rotate(self, deg = 1):
-		# TODO: find some way to check the number of possible rotations, i.e. 4 for L/J/T, 2 for I/S/Z, 1 for O
+	# TODO: program some way to account for shifts for pieces that kick off walls or rotate strangely
+	def rotate(self, clockwise = True):
 		# deg = 1: 90; deg = 2: 180; deg = 3; 270
-		# self.rotation = (self.rotation + deg) % ???
-		pass
-	
-	def getShape(self):
-		return 
+		tempRotation = self.rotation
+		tempRotation += 1 if clockwise else -1
+		self.rotation = tempRotation % 4
 
-	def drawTetrimino(self):
+		for mino in self.minoes:
+			mino.rotate(clockwise)
+	
+	# Will need to use this for rotations, so that rotations of the O/I/L/J blocks, don't mess up
+	def getOffset(self):
+		# https://tetris.wiki/Super_Rotation_System#Wall_Kicks will help with wall kick section
 		pass
+
+	def draw(self):
+		for mino in self.minoes:
+			mino.draw()
 	
 	def getShape(self) -> list[tuple[int, int]]:
-		return self.tetrominoes[self.type][self.rotation]
+		return TETRIMINO_TYPES[self.type].relPos
 	
 	def getColour(self):
 		return self.colour
 
-	# TODO: Should return something in the form of (bool: whether there is a collision, obj: reference to the other object)
+	# Idea: Return something in the form of (bool: whether there is a collision, obj: reference to the other object)
+	# The idea of only boolean works, but might not with other players.
 	def checkCollision(self):
-		collision = False
 		for mino in self.minoes:
-			collision = collision or mino.checkCollision()
+			if mino.checkCollision():
+				return True
+		return False
 	
